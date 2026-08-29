@@ -45,7 +45,7 @@ export async function registerStudent(data: {
 }
 
 export async function getToken(tokenId: string) {
-  return apiFetch(`/token/${tokenId}`);
+  return apiFetch(`/tokens/${tokenId}`);
 }
 
 export async function verifyToken(tokenId: string) {

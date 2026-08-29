@@ -31,11 +31,14 @@ interface TokenData {
 export default function TokenSuccessPage() {
   const params = useParams();
   const router = useRouter();
-  const tokenId = params.token as string;
+  const tokenIdRaw = params.tokenId as string;
+  // Safely extract and clean the token ID
+  const tokenId = (tokenIdRaw || '').trim();
 
   const [token, setToken] = useState<TokenData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -43,20 +46,29 @@ export default function TokenSuccessPage() {
 
   useEffect(() => {
     async function fetchToken() {
+      if (!tokenId) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
       try {
+        setLoading(true);
+        setNotFound(false);
+        setError(false);
         const res = await getToken(tokenId);
         if (res.success && res.token) {
           setToken(res.token);
         } else {
-          setError(res.message || 'Token record not found.');
+          setNotFound(true);
         }
-      } catch {
-        setError('Failed to fetch token details. Please check your connection.');
+      } catch (err) {
+        console.error('[FetchToken Error]', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     }
-    if (tokenId) fetchToken();
+    fetchToken();
   }, [tokenId]);
 
   function getSafeFilename() {
@@ -134,7 +146,7 @@ export default function TokenSuccessPage() {
           <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-900 flex items-center justify-center mb-4 shadow-sm">
             <Loader2 className="w-8 h-8 spinner" />
           </div>
-          <p className="font-bold text-slate-800 text-base">Loading Your Token...</p>
+          <p className="font-bold text-slate-800 text-base">Loading Token Details...</p>
           <p className="text-xs text-slate-400 mt-1 font-mono">{tokenId}</p>
         </div>
         <Footer />
@@ -142,7 +154,7 @@ export default function TokenSuccessPage() {
     );
   }
 
-  if (error || !token) {
+  if (notFound || !token) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Navbar />
@@ -152,7 +164,7 @@ export default function TokenSuccessPage() {
               <AlertCircle className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-bold text-slate-900">Token Not Found</h2>
-            <p className="text-xs text-slate-500">{error || 'The requested token could not be verified.'}</p>
+            <p className="text-xs text-slate-500">The requested token could not be verified.</p>
             <div className="pt-2">
               <Link
                 href="/register"
@@ -168,7 +180,31 @@ export default function TokenSuccessPage() {
     );
   }
 
-
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-lg text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Unable to load token details</h2>
+            <p className="text-xs text-slate-500">Please try again.</p>
+            <div className="pt-2">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-900 text-white font-bold text-xs shadow-sm hover:bg-blue-950 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" /> Return to Registration
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

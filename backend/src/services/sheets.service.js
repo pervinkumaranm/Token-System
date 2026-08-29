@@ -119,9 +119,11 @@ async function getAllTokens() {
 }
 
 async function getTokenByTokenId(tokenId) {
+  const targetId = (tokenId || '').trim().toUpperCase();
   const rows = await readRange(`${SHEET_TOKENS}!A2:K`);
   for (let i = 0; i < rows.length; i++) {
-    if (rows[i][1] === tokenId) {
+    const sheetTokenId = (rows[i][1] || '').trim().toUpperCase();
+    if (sheetTokenId === targetId) {
       return { token: rowToToken(rows[i], i + 1), rowIndex: i + 2 };
     }
   }

@@ -16,6 +16,7 @@ router.post('/register', registerLimiter, registerStudentHandler);
 
 // Token retrieval (public)
 router.get('/token/:tokenId', getTokenHandler);
+router.get('/tokens/:tokenId', getTokenHandler);
 router.get('/token/:tokenId/pdf', downloadTokenPDFHandler);
 
 // QR Verification (public read, protected write)
