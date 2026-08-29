@@ -66,7 +66,6 @@ async function registerStudent(data) {
     studentName: data.studentName.trim(),
     studentType,
     hostelOrDayScholar: studentType,
-    section: '',  // Kept empty for backward compatibility with existing sheet columns
     parentNumber: (data.parentNumber || '').trim(),
     studentMobile,
     generatedDate,

@@ -1,10 +1,10 @@
 // src/services/sheets.service.js
 // All Google Sheets CRUD operations
-// Column layout (A–L, 12 columns):
+// Column layout (A–K, 11 columns):
 //   A(0): S.No       B(1): Token ID     C(2): Student Name
-//   D(3): Hostel/DS  E(4): Section      F(5): Parent Number
-//   G(6): Student Mobile  H(7): Gen Date  I(8): Gen Time
-//   J(9): Status     K(10): Created At  L(11): Updated At
+//   D(3): Hostel/DS  E(4): Parent Number F(5): Student Mobile
+//   G(6): Gen Date   H(7): Gen Time     I(8): Status
+//   J(9): Created At K(10): Updated At
 
 const { getSheetsClient } = require('../config/google.config');
 const {
@@ -63,14 +63,13 @@ const TOKEN_HEADERS = [
   'Token ID',             // B
   'Student Name',         // C
   'Hostel / Day Scholar', // D
-  'Section',              // E
-  'Parent Number',        // F
-  'Student Mobile Number',// G
-  'Generated Date',       // H
-  'Generated Time',       // I
-  'Status',               // J
-  'Created At',           // K
-  'Updated At',           // L
+  'Parent Number',        // E
+  'Student Mobile Number',// F
+  'Generated Date',       // G
+  'Generated Time',       // H
+  'Status',               // I
+  'Created At',           // J
+  'Updated At',           // K
 ];
 
 // ─── ROW ↔ OBJECT MAPPERS ──────────────────────────────────
@@ -83,14 +82,13 @@ function rowToToken(row, sno) {
     studentName:        row[2]  || '',
     studentType:        row[3]  || '',
     hostelOrDayScholar: row[3]  || '',
-    section:            row[4]  || '',
-    parentNumber:       row[5]  || '',
-    studentMobile:      row[6]  || '',
-    generatedDate:      row[7]  || '',
-    generatedTime:      row[8]  || '',
-    status:             row[9]  || 'ACTIVE',
-    createdAt:          row[10] || '',
-    updatedAt:          row[11] || '',
+    parentNumber:       row[4]  || '',
+    studentMobile:      row[5]  || '',
+    generatedDate:      row[6]  || '',
+    generatedTime:      row[7]  || '',
+    status:             row[8]  || 'ACTIVE',
+    createdAt:          row[9]  || '',
+    updatedAt:          row[10] || '',
   };
 }
 
@@ -100,7 +98,6 @@ function tokenToRow(token) {
     token.tokenId            || '',
     token.studentName        || '',
     token.studentType        || token.hostelOrDayScholar || '',
-    token.section            || '',
     token.parentNumber       || '',
     token.studentMobile      || '',
     token.generatedDate      || '',
@@ -114,7 +111,7 @@ function tokenToRow(token) {
 // ─── TOKEN CRUD ────────────────────────────────────────────
 
 async function getAllTokens() {
-  const rows = await readRange(`${SHEET_TOKENS}!A2:L`);
+  const rows = await readRange(`${SHEET_TOKENS}!A2:K`);
   return rows
     .map((row, i) => rowToToken(row, i + 1))
     .filter(Boolean)
@@ -122,7 +119,7 @@ async function getAllTokens() {
 }
 
 async function getTokenByTokenId(tokenId) {
-  const rows = await readRange(`${SHEET_TOKENS}!A2:L`);
+  const rows = await readRange(`${SHEET_TOKENS}!A2:K`);
   for (let i = 0; i < rows.length; i++) {
     if (rows[i][1] === tokenId) {
       return { token: rowToToken(rows[i], i + 1), rowIndex: i + 2 };
@@ -132,7 +129,7 @@ async function getTokenByTokenId(tokenId) {
 }
 
 async function getTokenById(id) {
-  const rows = await readRange(`${SHEET_TOKENS}!A2:L`);
+  const rows = await readRange(`${SHEET_TOKENS}!A2:K`);
   for (let i = 0; i < rows.length; i++) {
     if (rows[i][0] === String(id)) {
       return { token: rowToToken(rows[i], i + 1), rowIndex: i + 2 };
@@ -171,7 +168,7 @@ async function searchTokens({
   dateFrom,
   dateTo,
 }) {
-  const rows = await readRange(`${SHEET_TOKENS}!A2:L`);
+  const rows = await readRange(`${SHEET_TOKENS}!A2:K`);
   let tokens = rows
     .map((row, i) => rowToToken(row, i + 1))
     .filter(Boolean)
@@ -370,10 +367,10 @@ async function initializeSheets() {
     });
   }
 
-  // Ensure header row matches clean 12-col TOKEN_HEADERS
+  // Ensure header row matches clean 11-col TOKEN_HEADERS
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_TOKENS}!A1:L1`,
+    range: `${SHEET_TOKENS}!A1:K1`,
     valueInputOption: 'RAW',
     requestBody: { values: [TOKEN_HEADERS] },
   });
