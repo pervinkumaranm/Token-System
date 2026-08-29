@@ -16,30 +16,28 @@ function buildTokenId(counter) {
   return `${TOKEN_PREFIX}-${TOKEN_YEAR}-${padded}`;
 }
 
+let localCounter = null;
+
 /**
  * Atomically generate the next unique token number.
  */
 async function generateUniqueTokenId() {
   const release = await tokenMutex.acquire();
   try {
-    let attempts = 0;
-    while (attempts < 10) {
-      const current = await getCounter();
-      const next = current + 1;
-      const candidate = buildTokenId(next);
-
-      // Verify it doesn't already exist
-      const existing = await getTokenByTokenId(candidate);
-      if (existing) {
-        await setCounter(next);
-        attempts++;
-        continue;
-      }
-
-      await setCounter(next);
-      return candidate;
+    if (localCounter === null) {
+      localCounter = await getCounter();
     }
-    throw new Error('Failed to generate a unique token after 10 attempts');
+    localCounter += 1;
+    const candidate = buildTokenId(localCounter);
+
+    // Persist the counter to Google Sheets settings asynchronously in the background.
+    // This removes the network latency of Sheets API calls from the critical path, 
+    // ensuring the mutex is held for less than 1 millisecond.
+    setCounter(localCounter).catch(err => {
+      console.error('[Token Service] Background setCounter failed:', err);
+    });
+
+    return candidate;
   } finally {
     release();
   }

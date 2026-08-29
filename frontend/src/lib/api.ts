@@ -134,3 +134,20 @@ export async function markTokenUsed(tokenId: string) {
     headers: getAuthHeader(),
   });
 }
+
+export async function updateStudentDetails(tokenId: string, data: {
+  studentName: string;
+  studentType: string;
+  parentNumber?: string;
+  studentMobile: string;
+}) {
+  return apiFetch(`/admin/token/${tokenId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    headers: getAuthHeader(),
+  });
+}
+
+export async function getWhatsAppStatus(tokenId: string) {
+  return apiFetch(`/tokens/${tokenId}/whatsapp-status`);
+}

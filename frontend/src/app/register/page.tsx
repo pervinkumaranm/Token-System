@@ -110,6 +110,9 @@ export default function RegisterPage() {
       });
 
       if (res && res.success && res.tokenId) {
+        if (typeof window !== 'undefined' && res.token) {
+          sessionStorage.setItem(`token_data_${res.tokenId}`, JSON.stringify(res.token));
+        }
         // Redirect to success token page on clean completion
         router.push(`/succrss/${res.tokenId}`);
       } else if (res && res.errors) {

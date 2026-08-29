@@ -162,6 +162,40 @@ async function updateToken(rowIndex, updatedFields, existingToken) {
   return merged;
 }
 
+async function updateTokenFields(rowIndex, updatedFields, existingToken) {
+  const now = new Date().toISOString();
+  const merged = { ...existingToken, ...updatedFields, updatedAt: now };
+
+  const sheets = await getSheetsClient();
+  
+  // Update C:F range (Student Name, Category/Type, Parent Contact, Student Contact)
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_TOKENS}!C${rowIndex}:F${rowIndex}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [[
+        merged.studentName,
+        merged.studentType || merged.hostelOrDayScholar || 'Day Scholar',
+        merged.parentNumber || '',
+        merged.studentMobile
+      ]]
+    }
+  });
+
+  // Update K range (Updated At)
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_TOKENS}!K${rowIndex}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [[merged.updatedAt]]
+    }
+  });
+
+  return merged;
+}
+
 async function searchTokens({
   query,
   studentType,
@@ -412,6 +446,7 @@ module.exports = {
   getTokenById,
   createToken,
   updateToken,
+  updateTokenFields,
   searchTokens,
   getAllAdmins,
   getAdminByUsername,

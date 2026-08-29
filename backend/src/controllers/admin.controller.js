@@ -9,13 +9,14 @@ const {
   getAllTokens,
   getTokenByTokenId,
   updateToken,
+  updateTokenFields,
   searchTokens,
   getAllAuditLogs,
 } = require('../services/sheets.service');
 const { generateTokenPDF } = require('../services/pdf.service');
 const { generateExcelExport } = require('../utils/excel.utils');
 const { logAction } = require('../services/audit.service');
-const { validateLogin, validateStatusUpdate } = require('../validators/admin.validator');
+const { validateLogin, validateStatusUpdate, validateStudentEdit } = require('../validators/admin.validator');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_jwt_secret_do_not_use_in_prod';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
@@ -294,6 +295,91 @@ async function getAuditLogsHandler(req, res) {
   }
 }
 
+async function updateStudentDetailsHandler(req, res) {
+  try {
+    const { tokenId } = req.params;
+    
+    // ── 1. Validate Input ──────────────────────────────────
+    const { valid, errors, data } = validateStudentEdit(req.body);
+    if (!valid) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors });
+    }
+
+    // ── 2. Find Student Record ──────────────────────────────
+    const found = await getTokenByTokenId(tokenId);
+    if (!found) {
+      return res.status(404).json({ success: false, message: 'Token record not found.' });
+    }
+    const { token, rowIndex } = found;
+
+    // ── 3. Detect Changed Fields ───────────────────────────
+    const oldVals = {};
+    const newVals = {};
+    const changedFields = [];
+
+    const fieldMap = [
+      ['studentName', token.studentName, data.studentName],
+      ['studentType', token.studentType || token.hostelOrDayScholar || 'Day Scholar', data.studentType],
+      ['parentNumber', token.parentNumber || '', data.parentNumber || ''],
+      ['studentMobile', token.studentMobile, data.studentMobile],
+    ];
+
+    for (const [key, oldVal, newVal] of fieldMap) {
+      if (oldVal !== newVal) {
+        oldVals[key] = oldVal;
+        newVals[key] = newVal;
+        changedFields.push(key);
+      }
+    }
+
+    // If no fields changed, return success immediately without API writes
+    if (changedFields.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No changes detected.',
+        token: {
+          ...token,
+          studentType: token.studentType || token.hostelOrDayScholar || 'Day Scholar',
+          hostelOrDayScholar: token.studentType || token.hostelOrDayScholar || 'Day Scholar'
+        }
+      });
+    }
+
+    // ── 4. Update specific cells in Sheets ──────────────────
+    const updated = await updateTokenFields(rowIndex, {
+      studentName: data.studentName,
+      studentType: data.studentType,
+      hostelOrDayScholar: data.studentType,
+      parentNumber: data.parentNumber,
+      studentMobile: data.studentMobile,
+    }, token);
+
+    // ── 5. Log Audit Action ────────────────────────────────
+    await logAction({
+      adminUsername: req.admin.username,
+      action: 'EDIT_STUDENT',
+      targetTokenId: tokenId,
+      oldValue: { changedFields, ...oldVals },
+      newValue: { changedFields, ...newVals },
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Student details updated successfully.',
+      token: {
+        ...updated,
+        studentType: updated.studentType || updated.hostelOrDayScholar || 'Day Scholar',
+        hostelOrDayScholar: updated.studentType || updated.hostelOrDayScholar || 'Day Scholar'
+      }
+    });
+
+  } catch (err) {
+    console.error('[EditStudent]', err);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+}
+
 module.exports = {
   seedAdminHandler,
   loginHandler,
@@ -302,6 +388,7 @@ module.exports = {
   listStudentsHandler,
   getStudentTokenHandler,
   updateTokenStatusHandler,
+  updateStudentDetailsHandler,
   downloadAdminTokenPDFHandler,
   exportExcelHandler,
   getAuditLogsHandler,

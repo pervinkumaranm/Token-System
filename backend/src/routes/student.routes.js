@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware/auth.middleware');
 const {
   registerStudentHandler,
   getTokenHandler,
+  getWhatsAppStatusHandler,
   downloadTokenPDFHandler,
   verifyTokenHandler,
   markTokenUsedHandler,
@@ -17,6 +18,7 @@ router.post('/register', registerLimiter, registerStudentHandler);
 // Token retrieval (public)
 router.get('/token/:tokenId', getTokenHandler);
 router.get('/tokens/:tokenId', getTokenHandler);
+router.get('/tokens/:tokenId/whatsapp-status', getWhatsAppStatusHandler);
 router.get('/token/:tokenId/pdf', downloadTokenPDFHandler);
 
 // QR Verification (public read, protected write)

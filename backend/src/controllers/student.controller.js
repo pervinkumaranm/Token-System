@@ -1,8 +1,8 @@
-// src/controllers/student.controller.js
 const { registerStudent }      = require('../services/token.service');
 const { getTokenByTokenId, updateToken } = require('../services/sheets.service');
 const { generateTokenPDF }     = require('../services/pdf.service');
 const { validateRegistration } = require('../validators/student.validator');
+const { sendWhatsAppBackground, getWhatsAppStatus } = require('../services/whatsapp.service');
 
 /**
  * POST /api/student/register
@@ -45,7 +45,10 @@ async function registerStudentHandler(req, res) {
       throw err;
     }
 
-    // ── 4. Return response immediately ────────────────────
+    // ── 4. Trigger WhatsApp async delivery in background ─
+    sendWhatsAppBackground(tokenRecord.tokenId);
+
+    // ── 5. Return response immediately ────────────────────
     console.log('[REGISTRATION] Returning success response');
     return res.status(201).json({
       success: true,
@@ -208,9 +211,21 @@ async function markTokenUsedHandler(req, res) {
   }
 }
 
+async function getWhatsAppStatusHandler(req, res) {
+  try {
+    const { tokenId } = req.params;
+    const status = getWhatsAppStatus(tokenId);
+    return res.json({ success: true, status });
+  } catch (err) {
+    console.error('[GetWhatsAppStatus]', err);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+}
+
 module.exports = {
   registerStudentHandler,
   getTokenHandler,
+  getWhatsAppStatusHandler,
   downloadTokenPDFHandler,
   verifyTokenHandler,
   markTokenUsedHandler,

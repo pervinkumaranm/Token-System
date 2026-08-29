@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import {
   Search, Filter, Download, CheckCircle2,
   XCircle, Eye, RefreshCw, Loader2, ChevronLeft, ChevronRight,
-  FileSpreadsheet, AlertCircle, X, Shield, Calendar
+  FileSpreadsheet, AlertCircle, X, Shield, Calendar, Pencil
 } from 'lucide-react';
 import { AdminLayoutWrapper } from '../dashboard/page';
 import {
-  listStudents, updateTokenStatus,
+  listStudents, updateTokenStatus, updateStudentDetails,
   getAdminTokenPDFUrl, getExportUrl
 } from '@/lib/api';
 import { STUDENT_TYPES, STATUS_COLORS } from '@/lib/constants';
@@ -98,6 +98,204 @@ function TokenDetailsModal({
             </a>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── EDIT STUDENT MODAL ── */
+function EditStudentModal({
+  token,
+  onClose,
+  onUpdated,
+}: {
+  token: TokenRecord;
+  onClose: () => void;
+  onUpdated: (updatedToken: TokenRecord) => void;
+}) {
+  const [studentName, setStudentName] = useState(token.studentName);
+  const [studentType, setStudentType] = useState(token.studentType || token.hostelOrDayScholar || 'Day Scholar');
+  const [parentNumber, setParentNumber] = useState(token.parentNumber || '');
+  const [studentMobile, setStudentMobile] = useState(token.studentMobile || '');
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [globalError, setGlobalError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  async function handleSaveChanges(e: React.FormEvent) {
+    e.preventDefault();
+    setErrors({});
+    setGlobalError('');
+    setSuccessMsg('');
+
+    const newErrors: Record<string, string> = {};
+    if (!studentName.trim()) {
+      newErrors.studentName = 'Student name is required';
+    } else if (studentName.trim().length < 2) {
+      newErrors.studentName = 'Student name must be at least 2 characters';
+    }
+
+    if (parentNumber.trim() && !/^[6-9]\d{9}$/.test(parentNumber.trim())) {
+      newErrors.parentNumber = 'Enter a valid 10-digit mobile number';
+    }
+
+    if (!studentMobile.trim()) {
+      newErrors.studentMobile = 'Student mobile number is required';
+    } else if (!/^[6-9]\d{9}$/.test(studentMobile.trim())) {
+      newErrors.studentMobile = 'Enter a valid 10-digit mobile number';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await updateStudentDetails(token.tokenId, {
+        studentName: studentName.trim(),
+        studentType,
+        parentNumber: parentNumber.trim() || undefined,
+        studentMobile: studentMobile.trim(),
+      });
+
+      if (res.success && res.token) {
+        setSuccessMsg('Student details updated successfully.');
+        setTimeout(() => {
+          onUpdated(res.token);
+          onClose();
+        }, 1500);
+      } else {
+        setGlobalError(res.message || 'Failed to update student details.');
+      }
+    } catch {
+      setGlobalError('Connection error while saving changes.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-slate-100">
+        <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <h3 className="font-bold text-sm text-white">Edit Student Details</h3>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded-lg transition-colors animate-none">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSaveChanges} className="p-6 space-y-4">
+          <div className="text-xs text-slate-400">
+            Editing Record: <strong className="text-amber-400 font-mono">{token.tokenId}</strong>
+          </div>
+
+          {globalError && (
+            <div className="p-3 bg-rose-950/50 border border-rose-900 text-rose-300 rounded-xl text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{globalError}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-950/50 border border-emerald-900 text-emerald-300 rounded-xl text-xs flex items-start gap-2 animate-pulse">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {/* Student Name */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Student Name
+            </label>
+            <input
+              type="text"
+              value={studentName}
+              onChange={e => setStudentName(e.target.value)}
+              disabled={loading}
+              className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-850 text-white focus:outline-none focus:border-amber-400"
+            />
+            {errors.studentName && <p className="text-rose-400 text-[10px] mt-0.5">{errors.studentName}</p>}
+          </div>
+
+          {/* Category */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Hostel / Day Scholar
+            </label>
+            <select
+              value={studentType}
+              onChange={e => setStudentType(e.target.value)}
+              disabled={loading}
+              className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-850 text-slate-200 focus:outline-none focus:border-amber-400"
+            >
+              {STUDENT_TYPES.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Parent Mobile */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Parent Mobile Number
+            </label>
+            <input
+              type="tel"
+              maxLength={10}
+              value={parentNumber}
+              onChange={e => setParentNumber(e.target.value)}
+              disabled={loading}
+              placeholder="10-digit Indian mobile number"
+              className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-850 text-white focus:outline-none focus:border-amber-400"
+            />
+            {errors.parentNumber && <p className="text-rose-400 text-[10px] mt-0.5">{errors.parentNumber}</p>}
+          </div>
+
+          {/* Student Mobile */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Student Mobile Number
+            </label>
+            <input
+              type="tel"
+              maxLength={10}
+              value={studentMobile}
+              onChange={e => setStudentMobile(e.target.value)}
+              disabled={loading}
+              className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/80 border border-slate-850 text-white focus:outline-none focus:border-amber-400"
+            />
+            {errors.studentMobile && <p className="text-rose-400 text-[10px] mt-0.5">{errors.studentMobile}</p>}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-1.5"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 spinner" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -213,7 +411,7 @@ export default function StudentsManagementPage() {
   const [status, setStatus] = useState('');
 
   // Modals
-  const [modalState, setModalState] = useState<{ type: 'details' | 'status' | null; token: TokenRecord | null }>({
+  const [modalState, setModalState] = useState<{ type: 'details' | 'status' | 'edit' | null; token: TokenRecord | null }>({
     type: null,
     token: null,
   });
@@ -272,6 +470,17 @@ export default function StudentsManagementPage() {
           token={modalState.token}
           onClose={() => setModalState({ type: null, token: null })}
           onUpdated={() => loadTokens(pagination.page)}
+        />
+      )}
+
+      {modalState.type === 'edit' && modalState.token && (
+        <EditStudentModal
+          token={modalState.token}
+          onClose={() => setModalState({ type: null, token: null })}
+          onUpdated={(updatedToken) => {
+            // Update only the modified record in-place in local React state
+            setTokens(prev => prev.map(t => t.tokenId === updatedToken.tokenId ? updatedToken : t));
+          }}
         />
       )}
 
@@ -422,6 +631,14 @@ export default function StudentsManagementPage() {
                             </button>
 
                             <button
+                              onClick={() => setModalState({ type: 'edit', token: t })}
+                              className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-950/60 transition-colors"
+                              title="Edit Student"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
+                            <button
                               onClick={() => setModalState({ type: 'status', token: t })}
                               className="p-1.5 rounded-lg text-amber-400 hover:bg-amber-950/60 transition-colors"
                               title="Change Status"
@@ -474,6 +691,12 @@ export default function StudentsManagementPage() {
                         className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" /> Details
+                      </button>
+                      <button
+                        onClick={() => setModalState({ type: 'edit', token: t })}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-blue-900/20 text-blue-400 text-xs font-semibold flex items-center justify-center gap-1"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Edit
                       </button>
                       <button
                         onClick={() => setModalState({ type: 'status', token: t })}

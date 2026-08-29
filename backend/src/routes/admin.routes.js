@@ -10,6 +10,7 @@ const {
   listStudentsHandler,
   getStudentTokenHandler,
   updateTokenStatusHandler,
+  updateStudentDetailsHandler,
   downloadAdminTokenPDFHandler,
   exportExcelHandler,
   getAuditLogsHandler,
@@ -29,6 +30,7 @@ router.post('/logout', logoutHandler);
 router.get('/dashboard', getDashboardStatsHandler);
 router.get('/students', generalLimiter, listStudentsHandler);
 router.get('/token/:tokenId', getStudentTokenHandler);
+router.patch('/token/:tokenId', updateStudentDetailsHandler);
 router.patch('/token/:tokenId/status', updateTokenStatusHandler);
 router.get('/token/:tokenId/pdf', downloadAdminTokenPDFHandler);
 router.get('/export', exportExcelHandler);

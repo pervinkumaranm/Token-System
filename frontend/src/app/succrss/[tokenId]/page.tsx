@@ -10,7 +10,7 @@ import {
   Shield, Share2, AlertCircle, Loader2, Home,
   Smartphone, Info
 } from 'lucide-react';
-import { getToken, getTokenPDFUrl } from '@/lib/api';
+import { getToken, getTokenPDFUrl, getWhatsAppStatus } from '@/lib/api';
 import { COLLEGE_NAME, STATUS_COLORS } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -43,6 +43,7 @@ export default function TokenSuccessPage() {
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState('');
+  const [whatsappStatus, setWhatsappStatus] = useState<'PENDING' | 'SENT' | 'FAILED' | null>(null);
 
   useEffect(() => {
     async function fetchToken() {
@@ -51,6 +52,22 @@ export default function TokenSuccessPage() {
         setLoading(false);
         return;
       }
+
+      // Try reading from cache first for instant load performance
+      if (typeof window !== 'undefined') {
+        const cached = sessionStorage.getItem(`token_data_${tokenId}`);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            setToken(parsed);
+            setLoading(false);
+            return;
+          } catch (e) {
+            // Ignore parse errors and fetch fresh
+          }
+        }
+      }
+
       try {
         setLoading(true);
         setNotFound(false);
@@ -58,6 +75,10 @@ export default function TokenSuccessPage() {
         const res = await getToken(tokenId);
         if (res.success && res.token) {
           setToken(res.token);
+          // Cache it for subsequent back-button or direct visits
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem(`token_data_${tokenId}`, JSON.stringify(res.token));
+          }
         } else {
           setNotFound(true);
         }
@@ -70,6 +91,38 @@ export default function TokenSuccessPage() {
     }
     fetchToken();
   }, [tokenId]);
+
+  // Poll background WhatsApp status
+  useEffect(() => {
+    if (!tokenId || !token) return;
+
+    let attempts = 0;
+    const maxAttempts = 12; // Poll for up to 24 seconds (12 * 2s)
+
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await getWhatsAppStatus(tokenId);
+        if (res.success && res.status) {
+          setWhatsappStatus(res.status);
+          // Stop polling once transitioned out of PENDING
+          if (res.status === 'SENT' || res.status === 'FAILED') {
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error('[WhatsApp Polling Error]', err);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        // Fallback status if polling times out
+        setWhatsappStatus(prev => prev === 'PENDING' ? 'FAILED' : prev);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [tokenId, token]);
 
   function getSafeFilename() {
     const safeName = (token?.studentName || 'Student').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
@@ -340,9 +393,37 @@ export default function TokenSuccessPage() {
                 </div>
               </div>
             </div>
+            {/* WhatsApp Status Indicator */}
+            {whatsappStatus && (
+              <div className={`p-4 rounded-xl border flex items-start gap-3 text-xs font-semibold transition-all ${
+                whatsappStatus === 'PENDING'
+                  ? 'bg-slate-50 border-slate-200 text-slate-600 animate-pulse'
+                  : whatsappStatus === 'SENT'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}>
+                {whatsappStatus === 'PENDING' ? (
+                  <Loader2 className="w-4 h-4 spinner text-slate-500 mt-0.5 shrink-0" />
+                ) : whatsappStatus === 'SENT' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                ) : (
+                  <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                )}
+                <div>
+                  <p className="font-bold uppercase tracking-wider text-[10px] text-slate-400">WhatsApp Delivery</p>
+                  <p className="mt-0.5">
+                    {whatsappStatus === 'PENDING'
+                      ? 'Sending token PDF to WhatsApp...'
+                      : whatsappStatus === 'SENT'
+                      ? 'Token PDF sent successfully.'
+                      : 'WhatsApp delivery failed. You can share the PDF manually.'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
-
-
+          <div className="p-6 sm:p-8 pt-0 space-y-6">
             {/* Primary Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <button
