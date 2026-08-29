@@ -23,6 +23,7 @@ interface TokenData {
   section: string;
   parentNumber?: string;
   studentMobile?: string;
+  studentWhatsApp?: string;
   generatedDate: string;
   generatedTime: string;
   status: string;
