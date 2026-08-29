@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -44,6 +44,9 @@ export default function TokenSuccessPage() {
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState('');
   const [whatsappStatus, setWhatsappStatus] = useState<'PENDING' | 'SENT' | 'FAILED' | null>(null);
+
+  // Cached PDF Blob to avoid multiple network calls between Download and Share
+  const pdfBlobRef = useRef<Blob | null>(null);
 
   useEffect(() => {
     async function fetchToken() {
@@ -124,26 +127,30 @@ export default function TokenSuccessPage() {
     return () => clearInterval(interval);
   }, [tokenId, token]);
 
-  function getSafeFilename() {
-    const safeName = (token?.studentName || 'Student').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
-    return `${tokenId}-${safeName}.pdf`;
+  function getPdfFilename() {
+    return `SSEC-${tokenId}.pdf`;
   }
 
-  async function fetchPDFBlob(): Promise<Blob> {
+  async function getOrFetchPDFBlob(): Promise<Blob> {
+    if (pdfBlobRef.current) {
+      return pdfBlobRef.current;
+    }
     const url = getTokenPDFUrl(tokenId);
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch PDF');
-    return res.blob();
+    const blob = await res.blob();
+    pdfBlobRef.current = blob;
+    return blob;
   }
 
   async function handleDownloadPDF() {
     setDownloading(true);
     try {
-      const blob = await fetchPDFBlob();
+      const blob = await getOrFetchPDFBlob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = getSafeFilename();
+      a.download = getPdfFilename();
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -159,26 +166,32 @@ export default function TokenSuccessPage() {
     setSharing(true);
     setShareError('');
     try {
-      const blob = await fetchPDFBlob();
-      const file = new File([blob], getSafeFilename(), { type: 'application/pdf' });
+      const blob = await getOrFetchPDFBlob();
+      const filename = getPdfFilename();
+      const file = new File([blob], filename, { type: 'application/pdf' });
 
-      // Check if the browser supports sharing files
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Check if Web Share API with files is supported by this device/browser
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
         await navigator.share({
-          title: `SSEC Token - ${tokenId}`,
-          text: `My college entry token for ${COLLEGE_NAME}: ${tokenId}`,
           files: [file],
+          title: `${COLLEGE_NAME} - Student Entry Token`,
+          text: `Student Entry Token: ${tokenId}`,
         });
       } else {
-        // Fallback: show a message and offer download
-        setShareError('Your device does not support direct PDF sharing. Please download the PDF and share it manually.');
+        // Desktop / Unsupported browser fallback
+        setShareError('PDF file sharing is not supported by this browser.');
       }
     } catch (err: any) {
       // User cancelled the share dialog — not a real error
       if (err?.name === 'AbortError') {
         // Do nothing
       } else {
-        setShareError('Your device does not support direct PDF sharing. Please download the PDF and share it manually.');
+        setShareError('Unable to share the PDF. Please download it and share manually.');
       }
     } finally {
       setSharing(false);
@@ -463,20 +476,36 @@ export default function TokenSuccessPage() {
               </button>
             </div>
 
-            {/* Share Fallback Message */}
+            {/* Share Fallback / Support Message */}
             {shareError && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-amber-800">{shareError}</p>
-                  <button
-                    onClick={handleDownloadPDF}
-                    disabled={downloading}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download PDF
-                  </button>
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3.5">
+                <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-3 flex-1">
+                  <div>
+                    <p className="text-xs font-bold text-amber-900">{shareError}</p>
+                    <p className="text-[11px] text-amber-700 mt-0.5">
+                      You can download the token PDF to your device or share token details directly via WhatsApp.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      onClick={handleDownloadPDF}
+                      disabled={downloading}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-2xs transition-all active:scale-98"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download PDF
+                    </button>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`*${COLLEGE_NAME}*\nOfficial Student Entry Token: *${tokenId}*\nStudent Name: ${token.studentName}\nView Pass: https://token-system-coral.vercel.app/succrss/${tokenId}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-98"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Open WhatsApp
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
