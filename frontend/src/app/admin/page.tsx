@@ -182,6 +182,7 @@ export default function AdminLoginPage() {
                     Login to Admin Panel
                   </>
                 )}
+              </button>
             </form>
           </div>
         </div>
