@@ -27,7 +27,6 @@ interface DashboardStats {
     studentName: string;
     studentType?: string;
     hostelOrDayScholar?: string;
-    section?: string;
     parentNumber?: string;
     studentMobile?: string;
     generatedDate: string;
@@ -511,7 +510,7 @@ export default function DashboardPage() {
           <div className="p-5 border-b border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white">Recent Student Registrations</h3>
-              <p className="text-[11px] text-slate-400">Latest tokens generated across all sections</p>
+              <p className="text-[11px] text-slate-400">Latest tokens generated</p>
             </div>
             <Link
               href="/admin/students"
@@ -530,7 +529,6 @@ export default function DashboardPage() {
                     <th className="py-3 px-4">Token ID</th>
                     <th className="py-3 px-4">Student Name</th>
                     <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Section</th>
                     <th className="py-3 px-4">Status</th>
                   </tr>
                 </thead>
@@ -545,9 +543,6 @@ export default function DashboardPage() {
                       </td>
                       <td className="py-3 px-4 text-slate-300">
                         {t.studentType || (t as any).hostelOrDayScholar || 'Day Scholar'}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-amber-300">
-                        Section {t.section}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[t.status] || 'bg-slate-800 text-slate-300'}`}>

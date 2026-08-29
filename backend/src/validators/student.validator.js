@@ -2,7 +2,7 @@
 // Zod schemas for student registration validation
 
 const { z } = require('zod');
-const { STUDENT_TYPES, SECTIONS } = require('../config/constants');
+const { STUDENT_TYPES } = require('../config/constants');
 
 const indianMobileRegex = /^[6-9]\d{9}$/;
 
@@ -14,10 +14,6 @@ const registerStudentSchema = z.object({
 
   studentType: z.enum(STUDENT_TYPES, {
     errorMap: () => ({ message: 'Please select Hostel or Day Scholar' }),
-  }),
-
-  section: z.enum(SECTIONS, {
-    errorMap: () => ({ message: 'Please select a valid section (A to O)' }),
   }),
 
   parentNumber: z.string()
@@ -37,7 +33,6 @@ function validateRegistration(data) {
     ...data,
     studentName: (data.studentName || '').trim(),
     studentType: (data.studentType || data.hostelOrDayScholar || '').trim(),
-    section: (data.section || '').trim().toUpperCase(),
     parentNumber: (data.parentNumber || data.parentMobile || '').trim(),
     studentMobile: (data.studentMobile || '').trim(),
   };

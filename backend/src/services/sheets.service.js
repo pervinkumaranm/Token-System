@@ -167,7 +167,6 @@ async function searchTokens({
   query,
   studentType,
   hostelOrDayScholar,
-  section,
   status,
   dateFrom,
   dateTo,
@@ -192,12 +191,6 @@ async function searchTokens({
   if (typeFilter) {
     tokens = tokens.filter(t =>
       t.studentType?.toLowerCase() === typeFilter.toLowerCase()
-    );
-  }
-
-  if (section) {
-    tokens = tokens.filter(t =>
-      t.section?.toUpperCase() === section.toUpperCase()
     );
   }
 

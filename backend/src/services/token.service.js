@@ -3,16 +3,16 @@
 
 const { Mutex } = require('async-mutex');
 const { getCounter, setCounter, getTokenByTokenId, createToken } = require('./sheets.service');
-const { TOKEN_PREFIX, TOKEN_YEAR, STATUS_ACTIVE, SMS_PENDING } = require('../config/constants');
+const { TOKEN_PREFIX, TOKEN_YEAR, STATUS_ACTIVE } = require('../config/constants');
 
 // Process-level mutex: only one request can run the token-generation critical section at a time
 const tokenMutex = new Mutex();
 
 /**
- * Format: SSEC-2026-00001
+ * Format: SSEC-2026-0001 (4-digit sequence)
  */
 function buildTokenId(counter) {
-  const padded = String(counter).padStart(6, '0');
+  const padded = String(counter).padStart(4, '0');
   return `${TOKEN_PREFIX}-${TOKEN_YEAR}-${padded}`;
 }
 
@@ -59,7 +59,6 @@ async function registerStudent(data) {
   const generatedTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
   const studentType = data.studentType || data.hostelOrDayScholar || 'Day Scholar';
-  const section = (data.section || 'A').toUpperCase();
   const studentMobile = (data.studentMobile || '').trim();
 
   const tokenRecord = {
@@ -67,13 +66,12 @@ async function registerStudent(data) {
     studentName: data.studentName.trim(),
     studentType,
     hostelOrDayScholar: studentType,
-    section,
+    section: '',  // Kept empty for backward compatibility with existing sheet columns
     parentNumber: (data.parentNumber || '').trim(),
     studentMobile,
     generatedDate,
     generatedTime,
     status: STATUS_ACTIVE,
-    smsStatus: SMS_PENDING,
   };
 
   const created = await createToken(tokenRecord);

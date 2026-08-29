@@ -6,10 +6,6 @@ export const COLLEGE_TAGLINE = 'Student Entry Token System';
 
 export const STUDENT_TYPES = ['Hostel', 'Day Scholar'] as const;
 
-export const SECTIONS = [
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-] as const;
-
 export const TOKEN_STATUSES = ['ACTIVE', 'USED', 'CANCELLED', 'EXPIRED'] as const;
 
 export const STATUS_COLORS: Record<string, string> = {

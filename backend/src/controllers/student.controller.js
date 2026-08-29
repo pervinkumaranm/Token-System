@@ -57,7 +57,6 @@ async function registerStudentHandler(req, res) {
         studentName:       tokenRecord.studentName,
         studentType:       tokenRecord.studentType,
         hostelOrDayScholar: tokenRecord.studentType,
-        section:           tokenRecord.section,
         parentNumber:      tokenRecord.parentNumber,
         studentMobile:     tokenRecord.studentMobile,
         generatedDate:     tokenRecord.generatedDate,
@@ -92,7 +91,6 @@ async function getTokenHandler(req, res) {
         studentName:       token.studentName,
         studentType:       token.studentType || token.hostelOrDayScholar || 'Day Scholar',
         hostelOrDayScholar: token.studentType || token.hostelOrDayScholar || 'Day Scholar',
-        section:           token.section,
         parentNumber:      token.parentNumber,
         studentMobile:     token.studentMobile,
         generatedDate:     token.generatedDate,
@@ -119,8 +117,10 @@ async function downloadTokenPDFHandler(req, res) {
     }
 
     const pdfBuffer = await generateTokenPDF(found.token);
+    const safeName = (found.token.studentName || 'Student').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const filename = `${tokenId}-${safeName}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${tokenId}_token.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     return res.send(pdfBuffer);
   } catch (err) {
@@ -159,7 +159,6 @@ async function verifyTokenHandler(req, res) {
         studentName:       token.studentName,
         studentType:       token.studentType || token.hostelOrDayScholar || 'Day Scholar',
         hostelOrDayScholar: token.studentType || token.hostelOrDayScholar || 'Day Scholar',
-        section:           token.section,
         generatedDate:     token.generatedDate,
         generatedTime:     token.generatedTime,
         status:            token.status,

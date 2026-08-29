@@ -109,7 +109,7 @@ async function generateTokenPDF(token) {
 
       // ── STUDENT DETAILS CARD ────────────────────────────────
       const cardY = 220;
-      const cardH = 300;
+      const cardH = 260;
       doc.roundedRect(30, cardY, W - 60 - 200, cardH, 10)
         .fill('#ffffff').stroke('#cbd5e1');
 
@@ -125,7 +125,6 @@ async function generateTokenPDF(token) {
       const fields = [
         ['Student Name', token.studentName],
         ['Hostel / Day Scholar', token.studentType || token.hostelOrDayScholar || 'Day Scholar'],
-        ['Section', `Section ${token.section || 'A'}`],
         ['Parent Contact', token.parentNumber ? `+91 ${token.parentNumber}` : 'Not Provided'],
         ['Student Mobile', `+91 ${token.studentMobile}`],
       ];

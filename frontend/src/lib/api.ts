@@ -34,7 +34,6 @@ export async function registerStudent(data: {
   studentName: string;
   studentType: string;
   hostelOrDayScholar?: string;
-  section: string;
   parentNumber?: string;
   parentMobile?: string;
   studentMobile: string;
@@ -88,7 +87,6 @@ export async function getDashboardStats() {
 export async function listStudents(params: {
   query?: string;
   studentType?: string;
-  section?: string;
   status?: string;
   smsStatus?: string;
   whatsappStatus?: string;

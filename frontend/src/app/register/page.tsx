@@ -5,19 +5,18 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  User, Building2, ChevronDown,
+  User, Building2,
   Loader2, CheckCircle2, AlertCircle, Shield, ArrowLeft,
-  Lock, Home, Layers, Check, Smartphone
+  Lock, Home, Check, Smartphone
 } from 'lucide-react';
 import { registerStudent } from '@/lib/api';
-import { COLLEGE_NAME, COLLEGE_TAGLINE, STUDENT_TYPES, SECTIONS } from '@/lib/constants';
+import { COLLEGE_NAME, COLLEGE_TAGLINE, STUDENT_TYPES } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 interface FormData {
   studentName: string;
   studentType: string; // 'Hostel' | 'Day Scholar' | ''
-  section: string;
   parentNumber: string;
   studentMobile: string;
 }
@@ -27,7 +26,6 @@ export default function RegisterPage() {
   const [form, setForm] = useState<FormData>({
     studentName: '',
     studentType: '', // Initialized empty so validation triggers if not selected
-    section: '',
     parentNumber: '',
     studentMobile: '',
   });
@@ -82,10 +80,6 @@ export default function RegisterPage() {
       newErrors.studentType = 'Please select Hostel or Day Scholar';
     }
 
-    if (!form.section) {
-      newErrors.section = 'Please select your section';
-    }
-
     // Parent Mobile Number is OPTIONAL - validate 10 digits only if provided
     if (form.parentNumber.trim() && !/^[6-9]\d{9}$/.test(form.parentNumber.trim())) {
       newErrors.parentNumber = 'Enter a valid 10-digit Indian mobile number';
@@ -110,7 +104,6 @@ export default function RegisterPage() {
         studentName: form.studentName.trim(),
         studentType: form.studentType,
         hostelOrDayScholar: form.studentType,
-        section: form.section,
         parentNumber: form.parentNumber.trim() || undefined,
         parentMobile: form.parentNumber.trim() || undefined,
         studentMobile: form.studentMobile.trim(),
@@ -310,39 +303,7 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* 3. Section * */}
-              <div>
-                <label htmlFor="section" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Section <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Layers className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <select
-                    id="section"
-                    name="section"
-                    value={form.section}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-10 py-3 text-sm rounded-xl border bg-slate-50/50 appearance-none focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900 transition-all ${
-                      errors.section ? 'border-rose-400 bg-rose-50/20 text-slate-900' : 'border-slate-200'
-                    } ${!form.section ? 'text-slate-400' : 'text-slate-900 font-medium'}`}
-                  >
-                    <option value="">Select Section (A to O)</option>
-                    {SECTIONS.map(sec => (
-                      <option key={sec} value={sec} className="text-slate-900">
-                        Section {sec}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
-                {errors.section && (
-                  <p className="text-rose-500 text-xs font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {errors.section}
-                  </p>
-                )}
-              </div>
-
-              {/* 4. Parent Mobile Number (OPTIONAL) */}
+              {/* 3. Parent Mobile Number (OPTIONAL) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label htmlFor="parentNumber" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -377,7 +338,7 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* 5. Student Mobile Number * */}
+              {/* 4. Student Mobile Number * */}
               <div>
                 <label htmlFor="studentMobile" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Student Mobile Number <span className="text-rose-500">*</span>

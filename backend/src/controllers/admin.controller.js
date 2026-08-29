@@ -146,7 +146,6 @@ async function listStudentsHandler(req, res) {
       query,
       studentType,
       hostelOrDayScholar,
-      section,
       status,
       dateFrom,
       dateTo,
@@ -155,12 +154,11 @@ async function listStudentsHandler(req, res) {
     } = req.query;
     let tokens;
 
-    if (query || studentType || hostelOrDayScholar || section || status || dateFrom || dateTo) {
+    if (query || studentType || hostelOrDayScholar || status || dateFrom || dateTo) {
       tokens = await searchTokens({
         query,
         studentType,
         hostelOrDayScholar,
-        section,
         status,
         dateFrom,
         dateTo,
@@ -244,19 +242,17 @@ async function exportExcelHandler(req, res) {
       query,
       studentType,
       hostelOrDayScholar,
-      section,
       status,
       dateFrom,
       dateTo,
     } = req.query;
     let tokens;
 
-    if (query || studentType || hostelOrDayScholar || section || status || dateFrom || dateTo) {
+    if (query || studentType || hostelOrDayScholar || status || dateFrom || dateTo) {
       tokens = await searchTokens({
         query,
         studentType,
         hostelOrDayScholar,
-        section,
         status,
         dateFrom,
         dateTo,
@@ -276,7 +272,7 @@ async function exportExcelHandler(req, res) {
     await logAction({
       adminUsername: req.admin.username,
       action: 'EXCEL_EXPORT',
-      newValue: { count: tokens.length, filters: { query, studentType, section, status } },
+      newValue: { count: tokens.length, filters: { query, studentType, status } },
       ipAddress: req.ip,
     });
   } catch (err) {

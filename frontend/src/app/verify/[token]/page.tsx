@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   CheckCircle2, XCircle, AlertTriangle, Loader2,
-  User, Building2, Calendar, Clock,
-  Shield, ArrowLeft, Check, Home, Layers
+  User, Calendar, Clock,
+  Shield, ArrowLeft, Check, Home
 } from 'lucide-react';
 import { verifyToken, markTokenUsed } from '@/lib/api';
 import { COLLEGE_NAME } from '@/lib/constants';
@@ -21,7 +21,6 @@ interface VerifyResult {
     studentName: string;
     studentType?: string;
     hostelOrDayScholar?: string;
-    section: string;
     generatedDate: string;
     generatedTime: string;
     status: string;
@@ -187,15 +186,6 @@ export default function VerifyTokenPage() {
                 </span>
                 <span className="font-bold text-white text-sm">
                   {result.token.studentType || result.token.hostelOrDayScholar || 'Day Scholar'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between py-1.5 border-b border-slate-800/60">
-                <span className="text-slate-400 flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5 text-amber-400" /> Section
-                </span>
-                <span className="font-bold font-mono text-amber-300 text-sm">
-                  Section {result.token.section}
                 </span>
               </div>
 

@@ -7,8 +7,8 @@ import Link from 'next/link';
 import {
   CheckCircle2, Download, Calendar, Clock,
   User, Phone, ArrowLeft, Copy, Check,
-  QrCode, Shield, Share2, AlertCircle, Loader2, Home, Layers,
-  Smartphone, MessageSquare
+  Shield, Share2, AlertCircle, Loader2, Home,
+  Smartphone, Info
 } from 'lucide-react';
 import { getToken, getTokenPDFUrl } from '@/lib/api';
 import { COLLEGE_NAME, STATUS_COLORS } from '@/lib/constants';
@@ -20,7 +20,6 @@ interface TokenData {
   studentName: string;
   studentType?: string;
   hostelOrDayScholar?: string;
-  section: string;
   parentNumber?: string;
   studentMobile?: string;
   studentWhatsApp?: string;
@@ -38,7 +37,9 @@ export default function TokenSuccessPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareError, setShareError] = useState('');
 
   useEffect(() => {
     async function fetchToken() {
@@ -58,25 +59,64 @@ export default function TokenSuccessPage() {
     if (tokenId) fetchToken();
   }, [tokenId]);
 
+  function getSafeFilename() {
+    const safeName = (token?.studentName || 'Student').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    return `${tokenId}-${safeName}.pdf`;
+  }
+
+  async function fetchPDFBlob(): Promise<Blob> {
+    const url = getTokenPDFUrl(tokenId);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch PDF');
+    return res.blob();
+  }
+
   async function handleDownloadPDF() {
     setDownloading(true);
     try {
-      const url = getTokenPDFUrl(tokenId);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
+      const blob = await fetchPDFBlob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `${tokenId}_token.pdf`;
+      a.download = getSafeFilename();
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      alert('Failed to download PDF. You can also view or save this page as reference.');
+      alert('Failed to download PDF. Please try again.');
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleSharePDF() {
+    setSharing(true);
+    setShareError('');
+    try {
+      const blob = await fetchPDFBlob();
+      const file = new File([blob], getSafeFilename(), { type: 'application/pdf' });
+
+      // Check if the browser supports sharing files
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `SSEC Token - ${tokenId}`,
+          text: `My college entry token for ${COLLEGE_NAME}: ${tokenId}`,
+          files: [file],
+        });
+      } else {
+        // Fallback: show a message and offer download
+        setShareError('Your device does not support direct PDF sharing. Please download the PDF and share it manually.');
+      }
+    } catch (err: any) {
+      // User cancelled the share dialog — not a real error
+      if (err?.name === 'AbortError') {
+        // Do nothing
+      } else {
+        setShareError('Your device does not support direct PDF sharing. Please download the PDF and share it manually.');
+      }
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -84,22 +124,6 @@ export default function TokenSuccessPage() {
     navigator.clipboard.writeText(tokenId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-  }
-
-  async function handleShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `SSEC Token - ${tokenId}`,
-          text: `My college entry token for ${COLLEGE_NAME}: ${tokenId}`,
-          url: window.location.href,
-        });
-      } catch {
-        handleCopyToken();
-      }
-    } else {
-      handleCopyToken();
-    }
   }
 
   if (loading) {
@@ -230,7 +254,7 @@ export default function TokenSuccessPage() {
             </div>
 
             {/* Student Credential Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* Student Name */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
                 <User className="w-4 h-4 text-blue-900 mt-0.5 flex-shrink-0" />
@@ -247,17 +271,6 @@ export default function TokenSuccessPage() {
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Category</p>
                   <p className="font-bold text-slate-900 mt-0.5 text-sm">
                     {token.studentType || token.hostelOrDayScholar || 'Day Scholar'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Section */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                <Layers className="w-4 h-4 text-blue-900 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Section</p>
-                  <p className="font-bold text-slate-900 mt-0.5 text-sm font-mono">
-                    Section {token.section}
                   </p>
                 </div>
               </div>
@@ -283,7 +296,7 @@ export default function TokenSuccessPage() {
               </div>
 
               {/* Issued Timestamp */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3 sm:col-span-2">
                 <Calendar className="w-4 h-4 text-blue-900 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Issued Date & Time</p>
@@ -295,7 +308,7 @@ export default function TokenSuccessPage() {
 
 
             {/* Primary Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <button
                 onClick={handleDownloadPDF}
                 disabled={downloading}
@@ -314,22 +327,42 @@ export default function TokenSuccessPage() {
                 )}
               </button>
 
-              <Link
-                href={`/verify/${token.tokenId}`}
-                className="inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm border border-slate-200 shadow-2xs hover:shadow-xs active:scale-98 transition-all"
-              >
-                <QrCode className="w-4 h-4 text-blue-900" />
-                View & Verify Pass
-              </Link>
-
               <button
-                onClick={handleShare}
+                onClick={handleSharePDF}
+                disabled={sharing}
                 className="inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm border border-slate-200 shadow-2xs hover:shadow-xs active:scale-98 transition-all"
               >
-                <Share2 className="w-4 h-4 text-slate-600" />
-                Share Pass
+                {sharing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 spinner" />
+                    Preparing...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 text-slate-600" />
+                    Share PDF
+                  </>
+                )}
               </button>
             </div>
+
+            {/* Share Fallback Message */}
+            {shareError && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-amber-800">{shareError}</p>
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={downloading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download PDF
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

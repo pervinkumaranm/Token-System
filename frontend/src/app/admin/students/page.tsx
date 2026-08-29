@@ -12,7 +12,7 @@ import {
   listStudents, updateTokenStatus,
   getAdminTokenPDFUrl, getExportUrl
 } from '@/lib/api';
-import { STUDENT_TYPES, SECTIONS, STATUS_COLORS } from '@/lib/constants';
+import { STUDENT_TYPES, STATUS_COLORS } from '@/lib/constants';
 
 interface TokenRecord {
   id: string;
@@ -20,7 +20,6 @@ interface TokenRecord {
   studentName: string;
   studentType?: string;
   hostelOrDayScholar?: string;
-  section: string;
   parentNumber?: string;
   studentMobile?: string;
   generatedDate: string;
@@ -76,7 +75,6 @@ function TokenDetailsModal({
             {[
               ['Student Name', token.studentName],
               ['Category', token.studentType || token.hostelOrDayScholar || 'Day Scholar'],
-              ['Section', `Section ${token.section}`],
               ['Parent Mobile', token.parentNumber ? `+91 ${token.parentNumber}` : 'Not Provided'],
               ['Student Mobile', `+91 ${token.studentMobile}`],
               ['Issued Timestamp', `${token.generatedDate} • ${token.generatedTime}`],
@@ -212,7 +210,6 @@ export default function StudentsManagementPage() {
   // Filter states
   const [query, setQuery] = useState('');
   const [studentType, setStudentType] = useState('');
-  const [section, setSection] = useState('');
   const [status, setStatus] = useState('');
 
   // Modals
@@ -227,7 +224,6 @@ export default function StudentsManagementPage() {
       const res = await listStudents({
         query,
         studentType,
-        section,
         status,
         page,
         limit: 50,
@@ -244,21 +240,20 @@ export default function StudentsManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, query, studentType, section, status]);
+  }, [router, query, studentType, status]);
 
   useEffect(() => {
     loadTokens(1);
   }, [loadTokens]);
 
   function handleExcelExport() {
-    const url = getExportUrl({ query, studentType, section, status });
+    const url = getExportUrl({ query, studentType, status });
     window.open(url, '_blank');
   }
 
   function handleClearFilters() {
     setQuery('');
     setStudentType('');
-    setSection('');
     setStatus('');
   }
 
@@ -306,18 +301,6 @@ export default function StudentsManagementPage() {
               <option value="">All Categories</option>
               {STUDENT_TYPES.map(type => (
                 <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            {/* Section Filter */}
-            <select
-              value={section}
-              onChange={e => setSection(e.target.value)}
-              className="py-2.5 px-3 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-amber-400"
-            >
-              <option value="">All Sections</option>
-              {SECTIONS.map(sec => (
-                <option key={sec} value={sec}>Section {sec}</option>
               ))}
             </select>
 
@@ -399,7 +382,6 @@ export default function StudentsManagementPage() {
                       <th className="py-3.5 px-4">Token ID</th>
                       <th className="py-3.5 px-4">Student Name</th>
                       <th className="py-3.5 px-4">Category</th>
-                      <th className="py-3.5 px-4">Section</th>
                       <th className="py-3.5 px-4">Parent Mobile</th>
                       <th className="py-3.5 px-4">Student Mobile</th>
                       <th className="py-3.5 px-4">Status</th>
@@ -417,9 +399,6 @@ export default function StudentsManagementPage() {
                         </td>
                         <td className="py-3.5 px-4 text-slate-300">
                           {t.studentType || t.hostelOrDayScholar || 'Day Scholar'}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-amber-300">
-                          Section {t.section}
                         </td>
                         <td className="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
                           {t.parentNumber ? `+91 ${t.parentNumber}` : '—'}
@@ -481,7 +460,7 @@ export default function StudentsManagementPage() {
                     <div className="space-y-1">
                       <p className="font-bold text-white text-sm">{t.studentName}</p>
                       <p className="text-xs text-slate-400">
-                        {t.studentType || t.hostelOrDayScholar || 'Day Scholar'} • Section {t.section}
+                        {t.studentType || t.hostelOrDayScholar || 'Day Scholar'}
                       </p>
                       <p className="text-[11px] text-slate-500">
                         Mobile: +91 {t.studentMobile}
