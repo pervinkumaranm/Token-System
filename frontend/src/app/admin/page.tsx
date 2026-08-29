@@ -182,12 +182,7 @@ export default function AdminLoginPage() {
                     Login to Admin Panel
                   </>
                 )}
-              </button>
             </form>
-
-            <p className="text-[11px] text-slate-500 text-center mt-6">
-              Default administrator seed: <code className="text-slate-400 font-mono">admin</code> / <code className="text-slate-400 font-mono">changeme123</code>
-            </p>
           </div>
         </div>
       </main>
