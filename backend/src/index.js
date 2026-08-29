@@ -21,13 +21,26 @@ app.set('trust proxy', 1);
 
 // ── CORS ─────────────────────────────────────────────────
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
+  (process.env.FRONTEND_URL || '').replace(/\/$/, ''),
   'http://localhost:3000',
   'http://localhost:3001',
-];
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+    
+    const cleanOrigin = origin.replace(/\/$/, '');
+    
+    // Allow if in allowedOrigins list or ends with .vercel.app
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    
     callback(new Error(`CORS policy: ${origin} not allowed`));
   },
   credentials: true,
