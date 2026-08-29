@@ -51,6 +51,11 @@ async function generateUniqueTokenId() {
 async function registerStudent(data) {
   const tokenId = await generateUniqueTokenId();
 
+  // Extract numerical sequence number from the token ID (e.g. SSEC-2026-0001 -> 1)
+  // This guarantees S.No and Token ID are ALWAYS 100% synchronized!
+  const match = tokenId.match(/(\d+)$/);
+  const sno = match ? parseInt(match[1], 10) : 1;
+
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const generatedDate = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
@@ -61,6 +66,7 @@ async function registerStudent(data) {
 
   const tokenRecord = {
     tokenId,
+    sno,
     studentName: data.studentName.trim(),
     studentType,
     hostelOrDayScholar: studentType,

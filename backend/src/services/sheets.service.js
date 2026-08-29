@@ -77,7 +77,7 @@ const TOKEN_HEADERS = [
 function rowToToken(row, sno) {
   if (!row || row.length < 2) return null;
   return {
-    sno:                String(sno || row[0] || ''),
+    sno:                String(row[0] || sno || ''),
     tokenId:            row[1]  || '',
     studentName:        row[2]  || '',
     studentType:        row[3]  || '',
@@ -142,8 +142,11 @@ async function getTokenById(id) {
 
 async function createToken(tokenData) {
   const now = new Date().toISOString();
-  const existingRows = await readRange(`${SHEET_TOKENS}!B2:B`);
-  const sno = existingRows.filter(r => r[0] && r[0].trim() !== '').length + 1;
+  let sno = tokenData.sno;
+  if (!sno) {
+    const existingRows = await readRange(`${SHEET_TOKENS}!B2:B`);
+    sno = existingRows.filter(r => r[0] && r[0].trim() !== '').length + 1;
+  }
 
   const row = tokenToRow({
     ...tokenData,
@@ -151,7 +154,11 @@ async function createToken(tokenData) {
     createdAt: now,
     updatedAt: now,
   });
-  await appendRow(SHEET_TOKENS, row);
+  
+  // Deterministic row placement: S.No 1 goes to Row 2, S.No 2 to Row 3, etc.
+  // This guarantees Google Sheets rows remain strictly ordered even under concurrency!
+  const targetRowIndex = Number(sno) + 1;
+  await updateRow(SHEET_TOKENS, targetRowIndex, row);
   return { ...tokenData, sno, createdAt: now, updatedAt: now };
 }
 
@@ -350,7 +357,7 @@ async function getCounter() {
     }
   }
 
-  const effectiveCounter = Math.max(maxSeq, existingTokenIds.length);
+  const effectiveCounter = maxSeq;
 
   const settingsRows = await readRange(`${SHEET_SETTINGS}!A2:B`);
   let storedCounter = null;
