@@ -342,7 +342,6 @@ async function getCounter() {
     .filter(val => val && val.trim() !== '');
 
   if (existingTokenIds.length === 0) {
-    await setCounter(0);
     return 0;
   }
 
@@ -357,22 +356,7 @@ async function getCounter() {
     }
   }
 
-  const effectiveCounter = maxSeq;
-
-  const settingsRows = await readRange(`${SHEET_SETTINGS}!A2:B`);
-  let storedCounter = null;
-  for (const row of settingsRows) {
-    if (row[0] === 'token_counter') {
-      storedCounter = parseInt(row[1] || '0', 10);
-      break;
-    }
-  }
-
-  if (storedCounter === null || storedCounter !== effectiveCounter) {
-    await setCounter(effectiveCounter);
-  }
-
-  return effectiveCounter;
+  return maxSeq;
 }
 
 async function setCounter(value) {
