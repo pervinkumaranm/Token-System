@@ -15,7 +15,10 @@ function getLogoPath() {
   return null;
 }
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+function getFrontendUrl() {
+  const url = process.env.FRONTEND_URL || 'http://localhost:3000';
+  return url.trim().replace(/\/$/, '');
+}
 
 /**
  * Generate a token PDF as a Buffer (in-memory, no disk write needed for streaming)
@@ -24,7 +27,7 @@ async function generateTokenPDF(token) {
   return new Promise(async (resolve, reject) => {
     try {
       // Generate QR code pointing to the verification page
-      const verifyUrl = `${FRONTEND_URL}/verify/${token.tokenId}`;
+      const verifyUrl = `${getFrontendUrl()}/verify/${token.tokenId}`;
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
         errorCorrectionLevel: 'H',
         width: 180,
