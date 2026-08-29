@@ -111,7 +111,7 @@ export default function RegisterPage() {
 
       if (res && res.success && res.tokenId) {
         // Redirect to success token page on clean completion
-        router.push(`/success/${res.tokenId}`);
+        router.push(`/succrss/${res.tokenId}`);
       } else if (res && res.errors) {
         const errMap: Record<string, string> = {};
         res.errors.forEach((err: { field: string; message: string }) => {

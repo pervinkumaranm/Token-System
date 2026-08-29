@@ -26,8 +26,8 @@ function getFrontendUrl() {
 async function generateTokenPDF(token) {
   return new Promise(async (resolve, reject) => {
     try {
-      // Generate QR code pointing to the verification page
-      const verifyUrl = `${getFrontendUrl()}/verify/${token.tokenId}`;
+      // Generate QR code pointing to the token success page
+      const verifyUrl = `https://token-system-coral.vercel.app/succrss/${token.tokenId}`;
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
         errorCorrectionLevel: 'H',
         width: 180,
